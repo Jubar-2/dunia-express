@@ -8,7 +8,11 @@ import {
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core';
-import { brand } from './brand.schema.js';
+import { relations } from 'drizzle-orm';
+import { brands } from './brand.schema.js';
+import { setCategory } from './set-category.schema.js';
+import { productVariants } from './product-variants.schema.js';
+import { collectionProducts } from './collection-products.schema.js';
 
 export const productStatusEnum = pgEnum('product_status', [
   'ACTIVE',
@@ -29,9 +33,21 @@ export const products = pgTable(
     }).notNull(),
     offerPrice: decimal('offer_price', { precision: 10, scale: 2 }),
     status: productStatusEnum('status').default('DRAFT').notNull(),
-    brandId: uuid('brand_id').references(() => brand.id, {
+    brandId: uuid('brand_id').references(() => brands.id, {
       onDelete: 'set null',
     }),
+
+    // SEO Fields
+    metaTitle: varchar('meta_title', { length: 255 }),
+    metaDescription: text('meta_description'),
+    metaKeywords: text('meta_keywords'),
+    canonicalUrl: text('canonical_url'),
+
+    // Open Graph
+    ogTitle: varchar('og_title', { length: 255 }),
+    ogDescription: text('og_description'),
+    ogImage: text('og_image'),
+
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -46,6 +62,16 @@ export const products = pgTable(
     index('products_status_idx').on(t.status),
   ],
 );
+
+export const productsRelations = relations(products, ({ one, many }) => ({
+  brand: one(brands, {
+    fields: [products.brandId],
+    references: [brands.id],
+  }),
+  setCategories: many(setCategory),
+  variants: many(productVariants),
+  collectionProducts: many(collectionProducts),
+}));
 
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;

@@ -84,6 +84,10 @@ export class ProductController {
     description: 'Validation failed or invalid payload',
   })
   @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Referenced category or brand not found',
+  })
+  @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
     description: 'Missing or invalid authentication token',
   })
@@ -101,7 +105,8 @@ export class ProductController {
   @UseGuards(AbilitiesGuard)
   @CheckAbilities({ action: Action.Manage, subject: 'ecommerce' })
   @ApiOperation({
-    summary: 'Update existing product by UUID (Requires ecommerce_user or admin role)',
+    summary:
+      'Update existing product by UUID (Requires ecommerce_user or admin role)',
   })
   @ApiResponse({
     status: HttpStatus.OK,

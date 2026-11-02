@@ -14,15 +14,17 @@ export interface StandardResponse<T> {
 }
 
 @Injectable()
-export class ResponseTransformInterceptor<T>
-  implements NestInterceptor<T, StandardResponse<T>>
-{
+export class ResponseTransformInterceptor<T> implements NestInterceptor<
+  T,
+  StandardResponse<T>
+> {
   intercept(
     context: ExecutionContext,
     next: CallHandler,
   ): Observable<StandardResponse<T>> {
     return next.handle().pipe(
       map((data) => {
+        console.log(data);
         // Pass through if already standardized
         if (
           data &&

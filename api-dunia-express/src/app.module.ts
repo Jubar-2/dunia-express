@@ -11,6 +11,8 @@ import { CaslModule } from './casl/casl.module.js';
 import { validateEnv } from './common/config/env.validation.js';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ProductModule } from './product/product.module.js';
+import { CategoriesModule } from './categories/categories.module.js';
+import { BrandsModule } from './brands/brands.module.js';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { ProductModule } from './product/product.module.js';
     AuditModule,
     CaslModule,
     ProductModule,
+    CategoriesModule,
+    BrandsModule,
   ],
   controllers: [AppController, ServiceController],
   providers: [AppService],

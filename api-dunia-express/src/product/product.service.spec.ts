@@ -16,6 +16,13 @@ describe('ProductService', () => {
     offerPrice: '80.00',
     status: 'ACTIVE' as const,
     brandId: null,
+    metaTitle: null,
+    metaDescription: null,
+    metaKeywords: null,
+    canonicalUrl: null,
+    ogTitle: null,
+    ogDescription: null,
+    ogImage: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     brand: null,
@@ -28,6 +35,7 @@ describe('ProductService', () => {
       findAll: vi.fn(),
       findById: vi.fn(),
       findBySlug: vi.fn(),
+      findCategoryById: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -124,6 +132,57 @@ describe('ProductService', () => {
           ],
         }),
       ).rejects.toThrow(BadRequestException);
+    });
+    it('should create product with categoryId when category exists', async () => {
+      const categoryId = 'c66922b9-e4a8-4ce6-9922-a9b0c74f518a';
+      vi.mocked(repository.findBySlug).mockResolvedValue(null);
+      vi.mocked(repository.findCategoryById).mockResolvedValue({
+        id: categoryId,
+        image: null,
+        color: null,
+        parentId: null,
+      });
+      vi.mocked(repository.create).mockResolvedValue({
+        ...mockProduct,
+        category: {
+          id: categoryId,
+          image: null,
+          color: null,
+          parentId: null,
+        },
+      });
+
+      const result = await service.create({
+        title: 'New Shoe',
+        regularPrice: 99.99,
+        categoryId,
+      });
+
+      expect(repository.findCategoryById).toHaveBeenCalledWith(categoryId);
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'New Shoe',
+          slug: 'new-shoe',
+        }),
+        undefined,
+        undefined,
+        categoryId,
+      );
+      expect(result.category?.id).toBe(categoryId);
+    });
+
+    it('should throw NotFoundException if categoryId does not exist', async () => {
+      const categoryId = 'c66922b9-e4a8-4ce6-9922-a9b0c74f518a';
+      vi.mocked(repository.findBySlug).mockResolvedValue(null);
+      vi.mocked(repository.findCategoryById).mockResolvedValue(null);
+
+      await expect(
+        service.create({
+          title: 'New Shoe',
+          regularPrice: 99.99,
+          categoryId,
+        }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

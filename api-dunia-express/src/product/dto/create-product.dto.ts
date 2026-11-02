@@ -91,6 +91,14 @@ export class CreateProductDto {
   brandId?: string;
 
   @ApiPropertyOptional({
+    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    description: 'UUID of associated Category',
+  })
+  @IsOptional()
+  @IsUUID('4', { message: 'categoryId must be a valid UUID' })
+  categoryId?: string;
+
+  @ApiPropertyOptional({
     type: [CreateProductVariantDto],
     description: 'List of product SKU variants',
   })
@@ -109,4 +117,65 @@ export class CreateProductDto {
   @ValidateNested({ each: true })
   @Type(() => CreateProductImageDto)
   images?: CreateProductImageDto[];
+
+  @ApiPropertyOptional({
+    example: 'Buy Nike Air Max 90 Online | Best Prices',
+    description: 'SEO Meta Title',
+    maxLength: 255,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  metaTitle?: string;
+
+  @ApiPropertyOptional({
+    example: 'Shop authentic Nike Air Max 90 sneakers with free shipping.',
+    description: 'SEO Meta Description',
+  })
+  @IsOptional()
+  @IsString()
+  metaDescription?: string;
+
+  @ApiPropertyOptional({
+    example: 'shoes, running, nike, air max',
+    description: 'SEO Meta Keywords',
+  })
+  @IsOptional()
+  @IsString()
+  metaKeywords?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://example.com/products/nike-air-max-90',
+    description: 'Canonical URL',
+  })
+  @IsOptional()
+  @IsString()
+  canonicalUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 'Nike Air Max 90 - Premium Running Shoes',
+    description: 'Open Graph Title',
+    maxLength: 255,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  ogTitle?: string;
+
+  @ApiPropertyOptional({
+    example: 'Discover the latest Nike Air Max 90 collection.',
+    description: 'Open Graph Description',
+  })
+  @IsOptional()
+  @IsString()
+  ogDescription?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://example.com/images/og-air-max-90.jpg',
+    description: 'Open Graph Image URL',
+  })
+  @IsOptional()
+  @IsString()
+  ogImage?: string;
 }
+

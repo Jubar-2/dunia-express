@@ -85,7 +85,9 @@ export class ProductService {
     } else {
       const existing = await this.productRepository.findBySlug(slug);
       if (existing) {
-        throw new ConflictException(`Product with slug '${slug}' already exists`);
+        throw new ConflictException(
+          `Product with slug '${slug}' already exists`,
+        );
       }
     }
 
@@ -105,6 +107,24 @@ export class ProductService {
       }
     }
 
+    if (dto.categoryId) {
+      const category = await this.productRepository.findCategoryById(
+        dto.categoryId,
+      );
+      if (!category) {
+        throw new NotFoundException(
+          `Category with ID '${dto.categoryId}' not found`,
+        );
+      }
+    }
+
+    if (dto.brandId) {
+      const brand = await this.productRepository.findBrandById(dto.brandId);
+      if (!brand) {
+        throw new NotFoundException(`Brand with ID '${dto.brandId}' not found`);
+      }
+    }
+
     const productData: NewProduct = {
       title: dto.title.trim(),
       slug,
@@ -113,13 +133,25 @@ export class ProductService {
       offerPrice: dto.offerPrice !== undefined ? String(dto.offerPrice) : null,
       status: dto.status || 'DRAFT',
       brandId: dto.brandId || null,
+      metaTitle: dto.metaTitle || null,
+      metaDescription: dto.metaDescription || null,
+      metaKeywords: dto.metaKeywords || null,
+      canonicalUrl: dto.canonicalUrl || null,
+      ogTitle: dto.ogTitle || null,
+      ogDescription: dto.ogDescription || null,
+      ogImage: dto.ogImage || null,
     };
 
-    return this.productRepository.create(
-      productData,
-      dto.variants,
-      dto.images,
-    );
+    if (dto.categoryId) {
+      return this.productRepository.create(
+        productData,
+        dto.variants,
+        dto.images,
+        dto.categoryId,
+      );
+    }
+
+    return this.productRepository.create(productData, dto.variants, dto.images);
   }
 
   async update(id: string, dto: UpdateProductDto): Promise<ProductDetail> {
@@ -132,7 +164,9 @@ export class ProductService {
     if (slug && slug !== existing.slug) {
       const slugExists = await this.productRepository.findBySlug(slug);
       if (slugExists && slugExists.id !== id) {
-        throw new ConflictException(`Product with slug '${slug}' already exists`);
+        throw new ConflictException(
+          `Product with slug '${slug}' already exists`,
+        );
       }
     }
 
@@ -168,6 +202,13 @@ export class ProductService {
       }
     }
 
+    if (dto.brandId) {
+      const brand = await this.productRepository.findBrandById(dto.brandId);
+      if (!brand) {
+        throw new NotFoundException(`Brand with ID '${dto.brandId}' not found`);
+      }
+    }
+
     const updateData: Partial<NewProduct> = {};
     if (dto.title !== undefined) updateData.title = dto.title.trim();
     if (slug !== undefined) updateData.slug = slug;
@@ -178,6 +219,17 @@ export class ProductService {
       updateData.offerPrice = String(dto.offerPrice);
     if (dto.status !== undefined) updateData.status = dto.status;
     if (dto.brandId !== undefined) updateData.brandId = dto.brandId || null;
+    if (dto.metaTitle !== undefined) updateData.metaTitle = dto.metaTitle || null;
+    if (dto.metaDescription !== undefined)
+      updateData.metaDescription = dto.metaDescription || null;
+    if (dto.metaKeywords !== undefined)
+      updateData.metaKeywords = dto.metaKeywords || null;
+    if (dto.canonicalUrl !== undefined)
+      updateData.canonicalUrl = dto.canonicalUrl || null;
+    if (dto.ogTitle !== undefined) updateData.ogTitle = dto.ogTitle || null;
+    if (dto.ogDescription !== undefined)
+      updateData.ogDescription = dto.ogDescription || null;
+    if (dto.ogImage !== undefined) updateData.ogImage = dto.ogImage || null;
 
     const updated = await this.productRepository.update(
       id,

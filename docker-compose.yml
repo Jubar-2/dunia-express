@@ -10,15 +10,15 @@ services:
     env_file:
       - ./api-dunia-express/.env
 
-#   clint:
-#     build:
-#       context: ./fontend
-#       dockerfile: Dockerfile
-#     container_name: dunia_express_fontend
-#     restart: unless-stopped
-#     ports:      
-#       - "5173:5173"
-#     environment:      
-#       - API=http://localhost:3000
-#     depends_on:
-#       - api
+  frontend:
+    build:
+      context: ./frontend-dunia-express
+      dockerfile: Dockerfile
+    container_name: dunia_express_frontend
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+    depends_on:
+      - api

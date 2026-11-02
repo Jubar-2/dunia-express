@@ -54,7 +54,6 @@ export class AccessTokenStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
 
     const user = await this.userRepository.findById(payload.sub);
-
     if (!user || user.status !== 'active') {
       throw new UnauthorizedException('User account is inactive or not found');
     }

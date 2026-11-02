@@ -2,14 +2,18 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, asc, eq, ilike, or, sql, count } from 'drizzle-orm';
 import { DRIZZLE, type DrizzleDB } from '../database/database.constants.js';
 import {
-  brand,
+  brands,
+  categories,
   products,
   productVariants,
   productImages,
+  setCategory,
   type Product,
   type NewProduct,
   type ProductVariant,
   type ProductImage,
+  type Category,
+  type Brand,
 } from '../database/schema/index.js';
 import { QueryProductDto } from './dto/query-product.dto.js';
 import { CreateProductVariantDto } from './dto/create-product-variant.dto.js';
@@ -19,17 +23,24 @@ export interface ProductDetail extends Product {
   brand?: {
     id: string;
     name: string;
-    logo: string | null;
+    slug?: string;
+    image?: string | null;
+    logo?: string | null;
+    isActive?: boolean;
   } | null;
   variants: ProductVariant[];
   images: ProductImage[];
+  category?: Category | null;
 }
 
 @Injectable()
 export class ProductRepository {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
-  async findAll(query: QueryProductDto, tx?: DrizzleDB): Promise<{
+  async findAll(
+    query: QueryProductDto,
+    tx?: DrizzleDB,
+  ): Promise<{
     items: ProductDetail[];
     total: number;
     page: number;
@@ -53,10 +64,7 @@ export class ProductRepository {
     if (query.search && query.search.trim()) {
       const term = `%${query.search.trim()}%`;
       conditions.push(
-        or(
-          ilike(products.title, term),
-          ilike(products.description, term),
-        ),
+        or(ilike(products.title, term), ilike(products.description, term)),
       );
     }
 
@@ -83,13 +91,16 @@ export class ProductRepository {
       .select({
         product: products,
         brand: {
-          id: brand.id,
-          name: brand.name,
-          logo: brand.logo,
+          id: brands.id,
+          name: brands.name,
+          slug: brands.slug,
+          image: brands.image,
+          logo: brands.image,
+          isActive: brands.isActive,
         },
       })
       .from(products)
-      .leftJoin(brand, eq(products.brandId, brand.id))
+      .leftJoin(brands, eq(products.brandId, brands.id))
       .where(whereClause)
       .orderBy(sortOrder(orderColumn))
       .limit(limit)
@@ -144,13 +155,16 @@ export class ProductRepository {
       .select({
         product: products,
         brand: {
-          id: brand.id,
-          name: brand.name,
-          logo: brand.logo,
+          id: brands.id,
+          name: brands.name,
+          slug: brands.slug,
+          image: brands.image,
+          logo: brands.image,
+          isActive: brands.isActive,
         },
       })
       .from(products)
-      .leftJoin(brand, eq(products.brandId, brand.id))
+      .leftJoin(brands, eq(products.brandId, brands.id))
       .where(eq(products.id, id))
       .limit(1);
 
@@ -179,20 +193,26 @@ export class ProductRepository {
     };
   }
 
-  async findBySlug(slug: string, tx?: DrizzleDB): Promise<ProductDetail | null> {
+  async findBySlug(
+    slug: string,
+    tx?: DrizzleDB,
+  ): Promise<ProductDetail | null> {
     const client = tx ?? this.db;
 
     const rows = await client
       .select({
         product: products,
         brand: {
-          id: brand.id,
-          name: brand.name,
-          logo: brand.logo,
+          id: brands.id,
+          name: brands.name,
+          slug: brands.slug,
+          image: brands.image,
+          logo: brands.image,
+          isActive: brands.isActive,
         },
       })
       .from(products)
-      .leftJoin(brand, eq(products.brandId, brand.id))
+      .leftJoin(brands, eq(products.brandId, brands.id))
       .where(eq(products.slug, slug))
       .limit(1);
 
@@ -221,10 +241,37 @@ export class ProductRepository {
     };
   }
 
+  async findCategoryById(
+    categoryId: string,
+    tx?: DrizzleDB,
+  ): Promise<Category | null> {
+    const client = tx ?? this.db;
+    const [cat] = await client
+      .select()
+      .from(categories)
+      .where(eq(categories.id, categoryId))
+      .limit(1);
+    return cat || null;
+  }
+
+  async findBrandById(
+    brandId: string,
+    tx?: DrizzleDB,
+  ): Promise<Brand | null> {
+    const client = tx ?? this.db;
+    const [b] = await client
+      .select()
+      .from(brands)
+      .where(eq(brands.id, brandId))
+      .limit(1);
+    return b || null;
+  }
+
   async create(
     productData: NewProduct,
     variantsData?: CreateProductVariantDto[],
     imagesData?: CreateProductImageDto[],
+    categoryId?: string,
   ): Promise<ProductDetail> {
     return this.db.transaction(async (tx) => {
       const [createdProduct] = await tx
@@ -240,7 +287,8 @@ export class ProductRepository {
           productId: createdProduct.id,
           sku: v.sku,
           price: String(v.price),
-          compareAtPrice: v.compareAtPrice !== undefined ? String(v.compareAtPrice) : null,
+          compareAtPrice:
+            v.compareAtPrice !== undefined ? String(v.compareAtPrice) : null,
           quantity: v.quantity ?? 0,
         }));
 
@@ -271,12 +319,34 @@ export class ProductRepository {
           .returning();
       }
 
+      let categoryData: Category | null = null;
+      if (categoryId) {
+        await tx.insert(setCategory).values({
+          productId: createdProduct.id,
+          categoryId,
+        });
+
+        const [cat] = await tx
+          .select()
+          .from(categories)
+          .where(eq(categories.id, categoryId))
+          .limit(1);
+        categoryData = cat || null;
+      }
+
       let brandData = null;
       if (createdProduct.brandId) {
         const [b] = await tx
-          .select({ id: brand.id, name: brand.name, logo: brand.logo })
-          .from(brand)
-          .where(eq(brand.id, createdProduct.brandId))
+          .select({
+            id: brands.id,
+            name: brands.name,
+            slug: brands.slug,
+            image: brands.image,
+            logo: brands.image,
+            isActive: brands.isActive,
+          })
+          .from(brands)
+          .where(eq(brands.id, createdProduct.brandId))
           .limit(1);
         brandData = b || null;
       }
@@ -286,6 +356,7 @@ export class ProductRepository {
         brand: brandData,
         variants: createdVariants,
         images: createdImages,
+        category: categoryData,
       };
     });
   }
@@ -308,7 +379,9 @@ export class ProductRepository {
       }
 
       if (variantsData !== undefined) {
-        await tx.delete(productVariants).where(eq(productVariants.productId, id));
+        await tx
+          .delete(productVariants)
+          .where(eq(productVariants.productId, id));
         if (variantsData.length > 0) {
           const variantInserts = variantsData.map((v) => ({
             productId: id,

@@ -1,15 +1,42 @@
-import { index, pgTable, text, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
+import { products } from './products.schema.js';
 
-export const brand = pgTable(
-  'brand',
+export const brands = pgTable(
+  'brands',
   {
     id: uuid('id').defaultRandom().primaryKey(),
     name: varchar('name', { length: 255 }).notNull().unique(),
-    logo: text('logo'),
+    slug: varchar('slug', { length: 255 }).notNull().unique(),
+    image: text('image'),
+    description: text('description'),
+    isActive: boolean('is_active').default(true).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
   },
-  (t) => [index('brand_name_idx').on(t.name)],
+  (t) => [
+    index('brands_name_idx').on(t.name),
+    index('brands_slug_idx').on(t.slug),
+    index('brands_is_active_idx').on(t.isActive),
+  ],
 );
 
+export const brandsRelations = relations(brands, ({ many }) => ({
+  products: many(products),
+}));
 
-export type Brand = typeof brand.$inferSelect;
-export type NewBrand = typeof brand.$inferInsert;
+export type Brand = typeof brands.$inferSelect;
+export type NewBrand = typeof brands.$inferInsert;
